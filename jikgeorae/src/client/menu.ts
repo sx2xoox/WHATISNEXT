@@ -1,5 +1,4 @@
 // 게임 시작 전 화면: 혼자 하기, 방 만들기, 방 참가, 대기실
-import { CONFIG } from '../core/config';
 import { MAX_PLAYERS } from '../shared/protocol';
 import { PLAYER_CSS } from './scene';
 import type { LobbyState } from './source';
@@ -110,25 +109,18 @@ export class Menu {
     if (s.kind === 'home') {
       const online = this.online
         ? `<div class="m-online">
-            <button class="primary" data-m="create">방 만들기</button>
-            <div class="m-join"><label for="m-code">방 코드</label>
+            <button class="primary big" data-m="create">친구랑 하기 (방 만들기)</button>
+            <div class="m-join"><label for="m-code">받은 방 코드</label>
               <input id="m-code" maxlength="4" autocomplete="off" value="${esc(this.presetCode)}" placeholder="ABCD">
               <button data-m="join">참가</button></div>
           </div>`
-        : `<p class="hint">친구와 온라인으로 하려면 게임 서버(<code>npm start</code>)로 접속하세요.</p>`;
+        : `<p class="hint">친구랑 하려면 게임 서버 주소로 접속하세요.</p>`;
       body = `
         <h1>직거래</h1>
-        <p class="lede">중고 매물을 사고팔아 ${CONFIG.rounds}라운드 뒤 순자산 1위를 노리는 블러핑 경제 게임.</p>
-        <ol class="steps">
-          <li><b>시장 공개</b> 새 매물 ${CONFIG.lotsPerRound}개. 돈을 내고 감정하면 나만 실제 상태를 압니다</li>
-          <li><b>비공개 경매</b> 모두 동시에 입찰액을 적어 냅니다. 최고가 낙찰</li>
-          <li><b>직거래</b> 상대를 클릭해 현금·물건을 섞어 제안합니다. 말은 거짓말이어도 되지만, 보증을 붙였는데 하자면 배상</li>
-          <li><b>감정 · 정산</b> 내 물건의 실제 상태가 드러나고 시세가 움직입니다</li>
-        </ol>
-        <p class="hint">같은 시리즈의 서로 다른 물건을 모으면 세트 보너스. 보증권은 한 판에 ${CONFIG.guaranteeTokens}장이고, 남은 수는 나만 압니다.</p>
+        <p class="lede">중고 물건을 싸게 사서 비싸게 팔자! 친구를 속이거나, 속지 않거나.</p>
         <div class="m-name"><label for="m-name">내 이름</label><input id="m-name" maxlength="10" autocomplete="nickname" value="${esc(loadName())}" placeholder="이름"></div>
         <div class="m-actions">
-          <button class="${this.online ? '' : 'primary'}" data-m="solo">혼자 하기 (NPC 3명)</button>
+          <button class="${this.online ? '' : 'primary'} big" data-m="solo">혼자 연습하기</button>
           ${online}
         </div>
         ${s.error ? `<p class="m-error">${esc(s.error)}</p>` : ''}`;

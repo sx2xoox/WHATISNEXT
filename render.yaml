@@ -1,0 +1,14 @@
+# Render 블루프린트: 대시보드에서 New → Blueprint → 이 저장소를 고르면 아래대로 서버가 만들어진다
+services:
+  - type: web
+    name: jikgeorae
+    runtime: node
+    plan: free
+    rootDir: jikgeorae
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

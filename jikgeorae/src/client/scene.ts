@@ -72,6 +72,8 @@ export class Scene3D {
     this.scene.fog = new THREE.Fog(0x14111a, 9, 18);
     this.buildRoom();
     for (let i = 0; i < SEAT_ANGLES.length; i++) this.seats.push(this.buildSeat(i));
+    // 내 물건은 오른쪽 패널에 있으니 카메라 바로 앞 단상에는 놓지 않는다 (화면을 가림)
+    this.seats[0].shelf.visible = false;
     this.scene.add(this.table);
 
     const cam = this.seats[0].pos;

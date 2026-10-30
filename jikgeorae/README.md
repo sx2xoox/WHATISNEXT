@@ -18,7 +18,15 @@ npm start
 - `http://localhost:8080`을 열고 **방 만들기**를 누릅니다. 포트는 `PORT` 환경 변수로 바꿀 수 있습니다.
 - 대기실의 **링크 복사**로 친구에게 초대 링크를 보내면, 친구는 이름만 넣고 참가하면 됩니다.
 - 같은 와이파이의 친구는 내 PC의 IP 주소(`http://192.168.x.x:8080`)로 들어올 수 있습니다.
-- 인터넷의 친구와 하려면 Render, Railway, Fly.io 같은 Node 호스팅에 올립니다. 빌드 명령은 `npm ci && npm run build`, 실행 명령은 `npm start`입니다. WebSocket을 지원하는 곳이어야 합니다.
+## 인터넷에 올리기 (Render, 무료)
+
+저장소 루트의 `render.yaml`에 설정이 들어 있습니다.
+
+1. https://render.com 에 GitHub 계정으로 로그인합니다.
+2. **New → Blueprint**를 누르고 `sx2xoox/WHATISNEXT` 저장소를 고릅니다.
+3. **Apply**를 누르면 5분쯤 뒤 `https://jikgeorae-xxxx.onrender.com` 같은 주소가 생깁니다.
+
+무료 플랜은 15분 동안 아무도 없으면 잠들고, 다음 접속 때 깨어나는 데 1분쯤 걸립니다. 컨테이너 호스팅(Fly.io, Railway, Cloud Run)을 쓰려면 `jikgeorae/Dockerfile`을 쓰면 됩니다.
 
 ## 개발
 
