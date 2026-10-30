@@ -818,3 +818,141 @@ h4 {
     transition: none;
   }
 }
+
+/* ---------- 시작 메뉴 ---------- */
+
+#menu {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) 16px max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(10, 8, 12, 0.5);
+  overflow: auto;
+}
+
+#menu input {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 7px 10px;
+  min-width: 0;
+}
+
+#menu input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.m-name,
+.m-join,
+.m-link {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.m-name {
+  margin: 14px 0 12px;
+}
+
+.m-name input,
+.m-link input {
+  flex: 1;
+}
+
+.m-join input {
+  width: 90px;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.m-actions > button {
+  padding: 10px 16px;
+}
+
+.m-online {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.m-online > button {
+  padding: 10px 16px;
+}
+
+.m-error {
+  color: var(--bad);
+  margin: 12px 0 0;
+}
+
+.m-code {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.m-code span {
+  color: var(--muted);
+}
+
+.m-code b {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 48px;
+  letter-spacing: 0.12em;
+  color: var(--accent);
+}
+
+.m-players {
+  list-style: none;
+  margin: 14px 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.m-players li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--c, var(--line));
+  border-radius: 8px;
+}
+
+.m-players .emptyslot {
+  color: var(--muted);
+  border-style: dashed;
+}
+
+.m-leave {
+  margin-top: 14px;
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 8px 0 4px;
+}
+
+code {
+  font-size: 12px;
+  background: var(--panel-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}

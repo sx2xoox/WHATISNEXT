@@ -20,7 +20,9 @@ const PHASE_NAME: Record<string, string> = {
 };
 
 interface Seat {
+  pid: number; // 이 자리에 앉은 플레이어. 나는 항상 0번 자리
   pos: THREE.Vector3;
+  stripe: THREE.Mesh;
   podium: THREE.Group;
   shelf: THREE.Group;
   body?: THREE.Group;
@@ -90,7 +92,7 @@ export class Scene3D {
     });
     canvas.addEventListener('pointerleave', () => (this.hover = -1));
     canvas.addEventListener('click', () => {
-      if (this.hover > 0) this.onPick(this.hover);
+      if (this.hover > 0) this.onPick(this.seats[this.hover].pid);
     });
     window.addEventListener('resize', () => this.fit());
     this.fit();
@@ -209,7 +211,9 @@ export class Scene3D {
     podium.add(shelf);
 
     const seat: Seat = {
+      pid: i,
       pos,
+      stripe,
       podium,
       shelf,
       mats: [],
@@ -258,19 +262,39 @@ export class Scene3D {
     return seat;
   }
 
-  setNames(names: string[]): void {
-    names.forEach((n, i) => {
-      const plate = this.seats[i].podium.getObjectByName('plate') as THREE.Mesh | undefined;
-      if (!plate) return;
-      const mat = plate.material as THREE.MeshBasicMaterial;
-      mat.map?.dispose();
-      mat.map = this.nameplate(n, PLAYER_CSS[i]);
-      mat.needsUpdate = true;
+  // 내 번호를 기준으로 자리를 돌려 앉힌다. 인원이 4명보다 적으면 남는 자리는 숨긴다.
+  assign(me: number, names: string[]): void {
+    const n = names.length;
+    this.seats.forEach((seat, i) => {
+      const used = i < n;
+      seat.podium.visible = used;
+      if (seat.body) seat.body.visible = used;
+      if (!used) {
+        seat.pid = -1;
+        return;
+      }
+      const pid = (me + i) % n;
+      seat.pid = pid;
+      seat.shelfKey = '';
+      (seat.stripe.material as THREE.MeshBasicMaterial).color.setHex(PLAYER_COLORS[pid]);
+      for (const m of seat.mats) m.color.setHex(PLAYER_COLORS[pid]);
+      seat.bubble?.style.setProperty('--c', PLAYER_CSS[pid]);
+      const plate = seat.podium.getObjectByName('plate') as THREE.Mesh | undefined;
+      if (plate) {
+        const mat = plate.material as THREE.MeshBasicMaterial;
+        mat.map?.dispose();
+        mat.map = this.nameplate(names[pid], PLAYER_CSS[pid]);
+        mat.needsUpdate = true;
+      }
     });
   }
 
+  private seatOf(pid: number): Seat | undefined {
+    return this.seats.find((s) => s.pid === pid);
+  }
+
   say(who: number, text: string, to: number | null): void {
-    const seat = this.seats[who];
+    const seat = this.seatOf(who);
     if (!seat?.bubble) return;
     seat.bubble.textContent = text;
     seat.bubbleUntil = this.time + 3.5;
@@ -278,8 +302,9 @@ export class Scene3D {
   }
 
   private headOf(pid: number): THREE.Vector3 {
-    if (pid === 0) return this.camera.position.clone();
-    return this.seats[pid].pos.clone().setY(1.6);
+    const seat = this.seatOf(pid);
+    if (!seat || seat === this.seats[0]) return this.camera.position.clone();
+    return seat.pos.clone().setY(1.6);
   }
 
   // 물건 모양은 시리즈별 기본 도형 조합
@@ -359,8 +384,9 @@ export class Scene3D {
   }
 
   private syncShelves(v: PlayerView): void {
-    v.players.forEach((p, i) => {
-      const seat = this.seats[i];
+    v.players.forEach((p) => {
+      const seat = this.seatOf(p.id);
+      if (!seat) return;
       const key = p.items.join(',');
       if (seat.shelfKey === key) return;
       seat.shelfKey = key;
@@ -413,7 +439,15 @@ export class Scene3D {
     el.style.transform = `translate(${((p.x + 1) / 2) * w}px, ${((1 - p.y) / 2) * h}px) translate(-50%, ${below ? '0' : '-100%'})`;
   }
 
-  update(v: PlayerView, dt: number, eventText: string): void {
+  // 게임 시작 전 메뉴 뒤에서 방을 천천히 둘러본다
+  idle(dt: number): void {
+    this.time += dt;
+    const a = Math.sin(this.time * 0.15) * 0.35;
+    this.camera.lookAt(this.camera.position.clone().add(new THREE.Vector3(Math.sin(a), -0.08, -Math.cos(a))));
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  update(v: PlayerView, dt: number, eventText: string, offline: number[] = []): void {
     this.time += dt;
     const k = Math.min(1, dt * 5);
     this.look.yaw += (this.look.tYaw - this.look.yaw) * k;
@@ -430,7 +464,7 @@ export class Scene3D {
 
     // 마우스가 가리키는 상대 캐릭터
     this.ray.setFromCamera(this.pointer, this.camera);
-    const targets = this.seats.flatMap((s) => (s.body ? [s.body, s.podium] : []));
+    const targets = this.seats.flatMap((s) => (s.body && s.pid >= 0 ? [s.body, s.podium] : []));
     const hit = this.ray.intersectObjects(targets, true)[0];
     let hover = -1;
     for (let o: THREE.Object3D | null = hit?.object ?? null; o; o = o.parent) {
@@ -449,6 +483,10 @@ export class Scene3D {
 
     this.seats.forEach((seat, i) => {
       if (!seat.body) return;
+      if (seat.pid < 0) {
+        if (seat.bubble) seat.bubble.style.display = 'none';
+        return;
+      }
       const talking = this.time < seat.bubbleUntil;
       seat.body.position.y = Math.abs(Math.sin(this.time * (talking ? 9 : 2) + i)) * (talking ? 0.06 : 0.02);
       if (!talking) seat.lookAt = this.camera.position.clone().lerp(new THREE.Vector3(0, 1.4, 0), 0.4);
@@ -457,11 +495,13 @@ export class Scene3D {
       d = Math.atan2(Math.sin(d), Math.cos(d));
       seat.body.rotation.y += d * Math.min(1, dt * 4);
       for (const m of seat.mats) m.emissive.setHex(this.hover === i ? 0x2a2a2a : 0x000000);
-      const ready = v.players[i]?.ready;
+      const ready = v.players[seat.pid]?.ready;
       if (seat.bubble) {
         seat.bubble.classList.toggle('show', talking);
-        seat.bubble.classList.toggle('ready', !talking && !!ready && v.phase !== 'end');
-        if (!talking && ready) seat.bubble.textContent = '준비 완료';
+        const away = offline.includes(seat.pid);
+        seat.bubble.classList.toggle('ready', !talking && (away || (!!ready && v.phase !== 'end')));
+        if (!talking && away) seat.bubble.textContent = '연결 끊김';
+        else if (!talking && ready) seat.bubble.textContent = '준비 완료';
         this.place(seat.bubble, seat.pos.clone().setY(2.25));
       }
     });

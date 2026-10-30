@@ -79,5 +79,5 @@
 | 문서 / 코드 | 내용 |
 |---|---|
 | [기획서](docs/05-jikgeorae.md) | 원 기획 + 프로토타입에서 정한 규칙 (보증권, 감정 범위, 세트 보너스, 시세 조작 방지) |
-| [`jikgeorae/`](jikgeorae/) | 1인칭 토론장 웹 프로토타입 v0.1 (TypeScript + Three.js, NPC 3명) |
+| [`jikgeorae/`](jikgeorae/) | 1인칭 토론장 웹 프로토타입 v0.2 (TypeScript + Three.js). 혼자 하기(NPC 3명) + 방 코드 온라인 멀티 2~4인 |
 | [`prototype/`](prototype/) | 이전 후보였던 잔상 아레나 프로토타입 |

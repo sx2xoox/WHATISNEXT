@@ -3,6 +3,7 @@ import { describeEvent } from '../core/engine';
 import { ITEM_TYPES, SERIES, SERIES_IDS, TYPE_BY_ID } from '../core/items';
 import type { Command, Offer, Result } from '../core/types';
 import type { ItemView, PlayerView } from '../core/view';
+import { QUICK_LINES, type RoomMeta } from '../shared/protocol';
 import { PLAYER_CSS } from './scene';
 
 const won = (v: number) => `${Math.round(v).toLocaleString()}원`;
@@ -27,13 +28,14 @@ export class Ui {
   private draft: Draft | null = null;
   private v: PlayerView | null = null;
   private toastTimer = 0;
-  botLabels: string[] = [];
+  private meta: RoomMeta = { names: [], offline: [], botLabels: [], hostPid: 0 };
+  online = false;
   onRestart: () => void = () => {};
-  onEnter: () => void = () => {};
+  onSay: (text: string) => void = () => {};
 
   constructor(
     private root: HTMLElement,
-    private act: (cmd: Command) => Result,
+    private act: (cmd: Command) => Promise<Result>,
   ) {
     root.innerHTML = `
       <header class="top"></header>
@@ -70,9 +72,10 @@ export class Ui {
     this.toastTimer = window.setTimeout(() => (el.hidden = true), 2600);
   }
 
-  private run(cmd: Command): Result {
-    const r = this.act(cmd);
+  private async run(cmd: Command): Promise<Result> {
+    const r = await this.act(cmd);
     if (!r.ok) this.toast(r.error);
+    if (this.v) this.render(this.v, this.meta, true);
     return r;
   }
 
@@ -85,11 +88,13 @@ export class Ui {
     const { act, id = '', n = '0' } = el.dataset;
     const amount = Number(n);
     switch (act) {
-      case 'enter':
-        this.onEnter();
+      case 'say':
+        this.onSay(QUICK_LINES[amount]);
+        this.toast(`나: ${QUICK_LINES[amount]}`);
         break;
       case 'restart':
-        this.onRestart();
+        if (this.online && this.meta.hostPid !== v.me.id) this.toast('방장만 다시 시작할 수 있습니다');
+        else this.onRestart();
         break;
       case 'ready':
         this.run({ t: 'ready' });
@@ -144,7 +149,7 @@ export class Ui {
         this.draft = null;
         break;
     }
-    this.render(v, true);
+    this.render(v, this.meta, true);
   }
 
   openComposer(to: number, counter?: Offer): void {
@@ -161,7 +166,7 @@ export class Ui {
           counterOf: counter.id,
         }
       : { to, give: [], want: [], guarantee: [], giveCash: 0, wantCash: 0, line: '', counterOf: null };
-    this.render(this.v, true);
+    this.render(this.v, this.meta, true);
   }
 
   private toggleDraft(act: string, id: string): void {
@@ -175,10 +180,10 @@ export class Ui {
     else if (d.give.includes(id)) d.guarantee = flip(d.guarantee);
   }
 
-  private sendDraft(): void {
+  private async sendDraft(): Promise<void> {
     const d = this.draft;
     if (!d) return;
-    const r = this.run({
+    const r = await this.run({
       t: 'offer',
       to: d.to,
       giveCash: d.giveCash,
@@ -192,13 +197,15 @@ export class Ui {
     if (r.ok) {
       this.draft = null;
       this.toast('제안을 보냈습니다');
+      if (this.v) this.render(this.v, this.meta, true);
     }
   }
 
   // ---------- 그리기 ----------
 
-  render(v: PlayerView, force = false): void {
+  render(v: PlayerView, meta: RoomMeta, force = false): void {
     this.v = v;
+    this.meta = meta;
     if (force) this.cache.clear();
     this.root.dataset.phase = v.phase;
     if (v.phase !== 'trade') this.draft = null;
@@ -207,7 +214,7 @@ export class Ui {
     this.set('.right', this.right(v));
     this.set('.dock', this.dock(v));
     const modal = this.root.querySelector<HTMLElement>('.modal')!;
-    const modalHtml = v.phase === 'lobby' ? this.lobby() : this.draft ? this.composer(v, this.draft) : '';
+    const modalHtml = this.draft ? this.composer(v, this.draft) : '';
     modal.hidden = !modalHtml;
     this.set('.modal', modalHtml);
   }
@@ -312,7 +319,10 @@ export class Ui {
           <div class="badges">${this.badge(it)}</div><div class="acts">${acts.join('')}</div></li>`;
       })
       .join('');
-    return `<h2>내 자리</h2>
+    const quick = this.online
+      ? `<div class="quick">${QUICK_LINES.map((q, i) => `<button class="mini" data-act="say" data-n="${i}">${q}</button>`).join('')}</div>`
+      : '';
+    return `<h2>내 자리</h2>${quick}
       <dl class="stats">
         <div><dt>현금</dt><dd class="num">${won(me.cash)}</dd></div>
         <div><dt>입찰 잠금</dt><dd class="num">${won(me.locked)}</dd></div>
@@ -423,7 +433,7 @@ export class Ui {
       .filter((p) => p.id !== v.me.id)
       .map(
         (p) =>
-          `<button class="person" style="--c:${PLAYER_CSS[p.id]}" data-act="pick" data-id="${p.id}">${esc(p.name)}에게 제안${p.violations ? ` <i class="st bad">보증 위반 ${p.violations}</i>` : ''}</button>`,
+          `<button class="person" style="--c:${PLAYER_CSS[p.id]}" data-act="pick" data-id="${p.id}">${esc(p.name)}에게 제안${p.violations ? ` <i class="st bad">보증 위반 ${p.violations}</i>` : ''}${this.meta.offline.includes(p.id) ? ' <i class="st">연결 끊김</i>' : ''}</button>`,
       )
       .join('');
     return `<h2>직거래</h2>
@@ -461,7 +471,7 @@ export class Ui {
   private final(v: PlayerView): string {
     const rows = (v.final ?? [])
       .map((f, i) => {
-        const label = this.botLabels[f.player] ? `<i class="st">${this.botLabels[f.player]}</i>` : '';
+        const label = this.meta.botLabels[f.player] ? `<i class="st">${this.meta.botLabels[f.player]}</i>` : '';
         return `<tr class="${f.player === v.me.id ? 'me' : ''}"><td>${i + 1}</td>
           <td><span class="dot" style="--s:${PLAYER_CSS[f.player]}"></span>${this.name(v, f.player)} ${label}</td>
           <td class="num">${f.cash.toLocaleString()}</td><td class="num">${f.items.toLocaleString()}</td>
@@ -476,19 +486,6 @@ export class Ui {
       <button class="primary wide" data-act="restart">한 판 더</button>`;
   }
 
-  private lobby(): string {
-    return `<div class="sheet intro">
-      <h1>직거래</h1>
-      <p class="lede">중고 매물을 사고팔아 5라운드 뒤 순자산 1위를 노리는 블러핑 경제 게임. 지금은 NPC 세 명과 함께 테스트합니다.</p>
-      <ol class="steps">
-        <li><b>시장 공개</b> 새 매물 4개. 돈을 내고 감정하면 나만 실제 상태를 압니다</li>
-        <li><b>비공개 경매</b> 모두 동시에 입찰액을 적어 냅니다. 최고가 낙찰</li>
-        <li><b>직거래</b> 상대를 클릭해 현금·물건을 섞어 제안합니다. 말은 거짓말이어도 되지만, 보증을 붙였는데 하자면 배상</li>
-        <li><b>감정 · 정산</b> 내 물건의 실제 상태가 드러나고 시세가 움직입니다</li>
-      </ol>
-      <p class="hint">같은 시리즈의 서로 다른 물건을 모으면 세트 보너스가 붙습니다. 보증권은 한 판에 ${CONFIG.guaranteeTokens}장뿐이고, 남은 수는 나만 압니다.</p>
-      <button class="primary wide" data-act="enter">토론장 입장</button></div>`;
-  }
 
   private composer(v: PlayerView, d: Draft): string {
     const target = v.players[d.to];

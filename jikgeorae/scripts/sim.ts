@@ -2,7 +2,6 @@
 import { BotBrain, PERSONALITIES } from '../src/core/bots';
 import { createGame, start, tick } from '../src/core/engine';
 
-declare const process: { argv: string[] };
 const GAMES = Number(process.argv[2] ?? 20);
 const persona = [PERSONALITIES[0], ...PERSONALITIES];
 const stats = { trades: 0, offers: 0, accepted: 0, countered: 0, auctions: 0, unsold: 0, violations: 0, dumps: 0 };
