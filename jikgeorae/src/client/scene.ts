@@ -1,7 +1,8 @@
 // 1인칭 토론장. 모델 파일 없이 기본 도형만으로 만든다.
 import * as THREE from 'three';
-import { SERIES, TYPE_BY_ID } from '../core/items';
+import { TYPE_BY_ID } from '../core/items';
 import type { PlayerView } from '../core/view';
+import { ITEM_ICONS } from './itemIcons';
 
 export const PLAYER_COLORS = [0xf2c14e, 0xe8524a, 0x4f8ef7, 0x6fcf8a];
 export const PLAYER_CSS = ['#f2c14e', '#e8524a', '#4f8ef7', '#6fcf8a'];
@@ -40,7 +41,8 @@ export class Scene3D {
   private gradient: THREE.DataTexture;
   private seats: Seat[] = [];
   private table = new THREE.Group();
-  private lotModels = new Map<string, THREE.Group>();
+  private lotModels = new Map<string, THREE.Sprite>();
+  private iconMats = new Map<string, THREE.SpriteMaterial>();
   private lotLabels = new Map<string, HTMLDivElement>();
   private screenCanvas = document.createElement('canvas');
   private screenTex: THREE.CanvasTexture;
@@ -309,47 +311,21 @@ export class Scene3D {
     return seat.pos.clone().setY(1.6);
   }
 
-  // 물건 모양은 시리즈별 기본 도형 조합
-  private itemModel(typeId: string): THREE.Group {
-    const t = TYPE_BY_ID[typeId];
-    const c = new THREE.Color(SERIES[t.series].color);
-    const shade = (k: number) => this.toon(c.clone().multiplyScalar(k).getHex());
-    const g = new THREE.Group();
-    const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => {
-      const m = new THREE.Mesh(geo, mat);
-      m.position.set(x, y, z);
-      g.add(m);
-      return m;
-    };
-    const dark = this.toon(0x1b1820);
-    switch (t.series) {
-      case 'retro':
-        add(new THREE.BoxGeometry(0.62, 0.95, 0.16), shade(1), 0, 0.48);
-        add(new THREE.BoxGeometry(0.46, 0.36, 0.02), dark, 0, 0.66, 0.085);
-        add(new THREE.CylinderGeometry(0.06, 0.06, 0.03, 12).rotateX(Math.PI / 2), shade(0.5), 0.15, 0.25, 0.09);
-        break;
-      case 'figure':
-        add(new THREE.CylinderGeometry(0.3, 0.34, 0.12, 20), dark, 0, 0.06);
-        add(new THREE.CapsuleGeometry(0.2, 0.35, 6, 14), shade(1), 0, 0.5);
-        add(new THREE.SphereGeometry(0.2, 16, 12), shade(1.2), 0, 0.95);
-        break;
-      case 'audio':
-        add(new THREE.BoxGeometry(0.95, 0.28, 0.72), shade(0.8), 0, 0.14);
-        add(new THREE.CylinderGeometry(0.3, 0.3, 0.03, 28), dark, -0.1, 0.3);
-        add(new THREE.CylinderGeometry(0.08, 0.08, 0.035, 16), shade(1.2), -0.1, 0.31);
-        break;
-      case 'camera':
-        add(new THREE.BoxGeometry(0.8, 0.5, 0.32), shade(1), 0, 0.3);
-        add(new THREE.CylinderGeometry(0.17, 0.19, 0.3, 20).rotateX(Math.PI / 2), dark, 0, 0.3, 0.3);
-        add(new THREE.BoxGeometry(0.22, 0.12, 0.2), dark, -0.22, 0.6);
-        break;
-      case 'street':
-        add(new THREE.BoxGeometry(0.4, 0.12, 0.95), this.toon(0xf0ebe3), 0, 0.06);
-        add(new THREE.BoxGeometry(0.38, 0.28, 0.7), shade(1), 0, 0.25, -0.1);
-        add(new THREE.BoxGeometry(0.38, 0.16, 0.3), shade(1.15), 0, 0.2, 0.3);
-        break;
+  // 물건은 PixelLab으로 만든 픽셀아트를 항상 카메라를 향하는 판(스프라이트)으로 띄운다
+  private itemSprite(typeId: string, size: number): THREE.Sprite {
+    let mat = this.iconMats.get(typeId);
+    if (!mat) {
+      const tex = new THREE.TextureLoader().load(ITEM_ICONS[typeId]);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.magFilter = THREE.NearestFilter;
+      tex.minFilter = THREE.NearestFilter;
+      mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
+      this.iconMats.set(typeId, mat);
     }
-    return g;
+    const sprite = new THREE.Sprite(mat);
+    sprite.center.set(0.5, 0); // 바닥 기준으로 세운다
+    sprite.scale.setScalar(size);
+    return sprite;
   }
 
   private syncLots(v: PlayerView): void {
@@ -365,8 +341,7 @@ export class Scene3D {
     ids.forEach((id, i) => {
       let m = this.lotModels.get(id);
       if (!m) {
-        m = this.itemModel(v.items[id].type);
-        m.scale.setScalar(0.42);
+        m = this.itemSprite(v.items[id].type, 0.5);
         this.table.add(m);
         this.lotModels.set(id, m);
         const label = document.createElement('div');
@@ -376,8 +351,7 @@ export class Scene3D {
       }
       const n = ids.length;
       const x = (i - (n - 1) / 2) * 0.55;
-      m.position.set(x, 0.9 + Math.sin(this.time * 2 + i) * 0.03, 0.35 - Math.abs(x) * 0.25);
-      m.rotation.y = this.time * 0.6 + i;
+      m.position.set(x, 0.92 + Math.sin(this.time * 2 + i) * 0.03, 0.35 - Math.abs(x) * 0.25);
       const it = v.items[id];
       const label = this.lotLabels.get(id)!;
       const known = it.known ? `<em class="${it.known.mult < 1 ? 'bad' : 'good'}">감정 완료</em>` : '';
@@ -396,9 +370,8 @@ export class Scene3D {
       const n = p.items.length;
       const step = Math.min(0.24, 1.2 / Math.max(n, 1));
       p.items.forEach((id, k) => {
-        const m = this.itemModel(v.items[id].type);
-        m.scale.setScalar(0.19);
-        m.position.set((k - (n - 1) / 2) * step, 0, 0.05);
+        const m = this.itemSprite(v.items[id].type, 0.26);
+        m.position.set((k - (n - 1) / 2) * step, 0.02, 0.05);
         seat.shelf.add(m);
       });
     });

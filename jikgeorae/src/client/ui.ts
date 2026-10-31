@@ -5,6 +5,7 @@ import { ITEM_TYPES, SERIES, SERIES_IDS, TYPE_BY_ID } from '../core/items';
 import type { Command, Offer, Result } from '../core/types';
 import type { ItemView, PlayerView } from '../core/view';
 import { QUICK_LINES, type RoomMeta } from '../shared/protocol';
+import { ITEM_ICONS } from './itemIcons';
 import { PLAYER_CSS } from './scene';
 
 const won = (v: number) => `${Math.round(v).toLocaleString()}원`;
@@ -320,7 +321,7 @@ export class Ui {
 
   private itemName(v: PlayerView, id: string): string {
     const t = TYPE_BY_ID[v.items[id].type];
-    return `<span class="dot" style="--s:${hex(SERIES[t.series].color)}"></span>${t.name}`;
+    return `${icon(t.id)}<span class="dot" style="--s:${hex(SERIES[t.series].color)}" title="${SERIES[t.series].name}"></span>${t.name}`;
   }
 
   private goalText(v: PlayerView): string {
@@ -461,7 +462,8 @@ export class Ui {
             <button class="mini ghost" data-act="bid" data-id="${l.itemId}" data-n="${roundTo(price, 5_000)}">시세만큼 쓰기</button>`
           : '';
         return `<article class="lot ${my ? 'bidding' : ''}">
-          <div class="iname">${this.itemName(v, l.itemId)}</div>
+          ${icon(it.type, 'ico-big')}
+          <div class="iname">${this.itemName(v, l.itemId).replace(/<img[^>]*>/, '')}</div>
           <p class="price">시세 <b class="num">${man(price)}</b></p>
           <div class="line">${this.tag(it)}${appraise}</div>
           ${bid}</article>`;
@@ -475,7 +477,7 @@ export class Ui {
 
   // 제안 내용을 한 문장으로
   private sentence(v: PlayerView, o: Offer, incoming: boolean): string {
-    const list = (ids: string[]) => ids.map((id) => `<b>${TYPE_BY_ID[v.items[id].type].name}</b>`).join(', ');
+    const list = (ids: string[]) => ids.map((id) => `${icon(v.items[id].type)}<b>${TYPE_BY_ID[v.items[id].type].name}</b>`).join(', ');
     const other = incoming ? o.from : o.to;
     const subj = incoming ? this.who(v, other) : `나 → ${this.who(v, other)}`;
     const sellsToMe = o.giveItems.length > 0 && o.wantItems.length === 0 && o.giveCash === 0;
@@ -607,7 +609,7 @@ export class Ui {
     const card = (id: string) => {
       const it = v.items[id];
       return `<button class="pickcard ${d.item === id ? 'on' : ''}" data-act="d-item" data-id="${id}">
-        <span class="iname">${this.itemName(v, id)}</span><span class="num">시세 ${man(v.prices[it.type])}</span>${this.tag(it)}</button>`;
+        ${icon(it.type, 'ico-mid')}<span class="iname">${this.itemName(v, id).replace(/<img[^>]*>/, '')}</span><span class="num">시세 ${man(v.prices[it.type])}</span>${this.tag(it)}</button>`;
     };
     let body = '';
     let summary = '';
@@ -663,6 +665,7 @@ export class Ui {
 }
 
 const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
+const icon = (typeId: string, cls = 'ico') => `<img class="${cls}" src="${ITEM_ICONS[typeId]}" alt="">`;
 
 function seenHelp(): boolean {
   try {

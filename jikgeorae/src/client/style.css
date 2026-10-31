@@ -1101,3 +1101,35 @@ code {
 .intro .m-join {
   justify-content: center;
 }
+
+/* ---------- 물건 이미지 ---------- */
+
+.ico,
+.ico-mid,
+.ico-big {
+  image-rendering: pixelated;
+  flex: none;
+}
+
+.ico {
+  width: 24px;
+  height: 24px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.ico-mid {
+  width: 48px;
+  height: 48px;
+}
+
+.ico-big {
+  width: 72px;
+  height: 72px;
+  justify-self: center;
+}
+
+.pickcard {
+  justify-items: center;
+  text-align: center;
+}
