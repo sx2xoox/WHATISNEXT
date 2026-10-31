@@ -1107,7 +1107,6 @@ code {
 .ico,
 .ico-mid,
 .ico-big {
-  image-rendering: pixelated;
   flex: none;
 }
 

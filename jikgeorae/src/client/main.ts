@@ -1,6 +1,7 @@
 import './style.css';
 import { describeEvent } from '../core/engine';
 import { loadName, Menu } from './menu';
+import { renderItemIcons } from './items3d';
 import { Scene3D } from './scene';
 import { type GameSource, hasToken, LocalSource, OnlineSource } from './source';
 import { Ui } from './ui';
@@ -15,6 +16,7 @@ declare global {
 const onlineAvailable = window.__ONLINE__ === true || import.meta.env.DEV;
 const presetCode = new URLSearchParams(location.search).get('room')?.toUpperCase() ?? '';
 
+renderItemIcons();
 const scene = new Scene3D(document.getElementById('stage')!, document.getElementById('labels')!);
 let source: GameSource | null = null;
 let seatKey = '';

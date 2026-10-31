@@ -5,7 +5,7 @@ import { ITEM_TYPES, SERIES, SERIES_IDS, TYPE_BY_ID } from '../core/items';
 import type { Command, Offer, Result } from '../core/types';
 import type { ItemView, PlayerView } from '../core/view';
 import { QUICK_LINES, type RoomMeta } from '../shared/protocol';
-import { ITEM_ICONS } from './itemIcons';
+import { ITEM_ICONS } from './items3d';
 import { PLAYER_CSS } from './scene';
 
 const won = (v: number) => `${Math.round(v).toLocaleString()}원`;
@@ -665,7 +665,7 @@ export class Ui {
 }
 
 const hex = (c: number) => `#${c.toString(16).padStart(6, '0')}`;
-const icon = (typeId: string, cls = 'ico') => `<img class="${cls}" src="${ITEM_ICONS[typeId]}" alt="">`;
+const icon = (typeId: string, cls = 'ico') => (ITEM_ICONS[typeId] ? `<img class="${cls}" src="${ITEM_ICONS[typeId]}" alt="">` : '');
 
 function seenHelp(): boolean {
   try {

@@ -59,14 +59,12 @@ npm test             # 엔진 테스트 14개 + 멀티플레이 서버 테스트
 | `server/index.ts` | 정적 파일 + WebSocket(`/ws`) 서버, 방 코드 발급, 빈 방 정리 |
 | `src/client/source.ts` | 혼자 하기(브라우저 안 엔진)와 온라인(WebSocket)을 같은 방식으로 다룸 |
 | `src/client/menu.ts` | 시작 화면, 방 만들기·참가, 대기실 |
-| `src/client/scene.ts` | Three.js 1인칭 토론장, 캐릭터, 물건 모형, 말풍선 |
+| `src/client/scene.ts` | Three.js 1인칭 토론장, 캐릭터, 말풍선 |
 | `src/client/ui.ts` | 시세판, 내 자리, 단계별 패널, 거래 제안 창 |
 | `tests/engine.test.ts` | 경매, 직거래 원자성, 중복 요청, 이중 판매, 보증, 정산 테스트 |
 | `tests/server.test.ts` | 방 생성·참가, 방장 권한, 정보 숨김, 네트워크 직거래, 재접속, NPC 채우기 |
 | `scripts/sim.ts` | NPC 4명으로 여러 판을 돌리는 밸런스 점검 |
-| `assets/items/*.png` | PixelLab으로 만든 물건 아이콘 20종 (64×64 픽셀아트) |
-| `scripts/gen-icons.py` | PixelLab API로 아이콘을 다시 만드는 스크립트. 없는 파일만 만듦 |
-| `scripts/build-icons.py` | 아이콘을 `src/client/itemIcons.ts`에 묶음. 아이콘을 바꾸면 다시 실행 |
+| `src/client/items3d.ts` | 물건 20종의 3D 모형(기본 도형 조립)과, 같은 모형을 찍은 카드용 썸네일 |
 
 밸런스 점검:
 

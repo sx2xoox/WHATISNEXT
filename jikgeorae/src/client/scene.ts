@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { TYPE_BY_ID } from '../core/items';
 import type { PlayerView } from '../core/view';
-import { ITEM_ICONS } from './itemIcons';
+import { makeItemModel } from './items3d';
 
 export const PLAYER_COLORS = [0xf2c14e, 0xe8524a, 0x4f8ef7, 0x6fcf8a];
 export const PLAYER_CSS = ['#f2c14e', '#e8524a', '#4f8ef7', '#6fcf8a'];
@@ -41,8 +41,7 @@ export class Scene3D {
   private gradient: THREE.DataTexture;
   private seats: Seat[] = [];
   private table = new THREE.Group();
-  private lotModels = new Map<string, THREE.Sprite>();
-  private iconMats = new Map<string, THREE.SpriteMaterial>();
+  private lotModels = new Map<string, THREE.Group>();
   private lotLabels = new Map<string, HTMLDivElement>();
   private screenCanvas = document.createElement('canvas');
   private screenTex: THREE.CanvasTexture;
@@ -311,23 +310,6 @@ export class Scene3D {
     return seat.pos.clone().setY(1.6);
   }
 
-  // 물건은 PixelLab으로 만든 픽셀아트를 항상 카메라를 향하는 판(스프라이트)으로 띄운다
-  private itemSprite(typeId: string, size: number): THREE.Sprite {
-    let mat = this.iconMats.get(typeId);
-    if (!mat) {
-      const tex = new THREE.TextureLoader().load(ITEM_ICONS[typeId]);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.magFilter = THREE.NearestFilter;
-      tex.minFilter = THREE.NearestFilter;
-      mat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-      this.iconMats.set(typeId, mat);
-    }
-    const sprite = new THREE.Sprite(mat);
-    sprite.center.set(0.5, 0); // 바닥 기준으로 세운다
-    sprite.scale.setScalar(size);
-    return sprite;
-  }
-
   private syncLots(v: PlayerView): void {
     const show = v.phase === 'market' || v.phase === 'auction';
     const ids = show ? v.lots.map((l) => l.itemId) : [];
@@ -341,7 +323,8 @@ export class Scene3D {
     ids.forEach((id, i) => {
       let m = this.lotModels.get(id);
       if (!m) {
-        m = this.itemSprite(v.items[id].type, 0.5);
+        m = makeItemModel(v.items[id].type);
+        m.scale.setScalar(0.4);
         this.table.add(m);
         this.lotModels.set(id, m);
         const label = document.createElement('div');
@@ -352,6 +335,7 @@ export class Scene3D {
       const n = ids.length;
       const x = (i - (n - 1) / 2) * 0.55;
       m.position.set(x, 0.92 + Math.sin(this.time * 2 + i) * 0.03, 0.35 - Math.abs(x) * 0.25);
+      m.rotation.y = Math.sin(this.time * 0.8 + i) * 0.6;
       const it = v.items[id];
       const label = this.lotLabels.get(id)!;
       const known = it.known ? `<em class="${it.known.mult < 1 ? 'bad' : 'good'}">감정 완료</em>` : '';
@@ -370,8 +354,9 @@ export class Scene3D {
       const n = p.items.length;
       const step = Math.min(0.24, 1.2 / Math.max(n, 1));
       p.items.forEach((id, k) => {
-        const m = this.itemSprite(v.items[id].type, 0.26);
-        m.position.set((k - (n - 1) / 2) * step, 0.02, 0.05);
+        const m = makeItemModel(v.items[id].type);
+        m.scale.setScalar(0.2);
+        m.position.set((k - (n - 1) / 2) * step, 0, 0.05);
         seat.shelf.add(m);
       });
     });
